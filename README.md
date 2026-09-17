@@ -1,6 +1,6 @@
-# MeshStar relay for the Specter DX-LR30
+# MeshStar relay for the DX-LR30
 
-Firmware that turns the **Specter DX-LR30** repeater (STM32F103C8T6 +
+Firmware that turns the **DX-LR30** repeater (STM32F103C8T6 +
 SX1262, 64 KB flash, 20 KB RAM) into a **MeshStar relay**: a node of the
 [MeshStar](https://github.com/MaliosDark/MeshStar) LoRa mesh that extends
 the network's reach without originating or reading any traffic.
@@ -142,4 +142,4 @@ flash.sh      build + flash through the ROM bootloader
 
 ## License
 
-GPL-3.0-only, like MeshStar.
+GPL-3.0
