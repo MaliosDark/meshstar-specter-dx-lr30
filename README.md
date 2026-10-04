@@ -54,6 +54,11 @@ unsigned relay is a routing label, exactly like any node between its
 periodic signed beacons. On a bigger MCU the same engine runs with a
 signed identity and behaves like a node.
 
+Not verifying beacons means anyone in radio range can claim to be a neighbour
+and poison the tables. That costs availability, never content: payloads are
+bound end to end and the relay has no keys to decrypt with. If that matters for
+your deployment, [a closed network](#open-or-closed-network) shuts the door.
+
 ## Hardware
 
 | Function | STM32 pin | Notes |
@@ -88,6 +93,45 @@ The MeshStar crates (protocol core and SX126x driver) come from a
 MeshStar checkout next to this folder: `git clone
 https://github.com/MaliosDark/MeshStar ../MeshStar`. `Cargo.toml` shows
 how to point at GitHub directly instead.
+
+## Open or closed network
+
+By default the relay is **open**: it carries traffic for any MeshStar node in
+range, which is the whole point of a relay. Two build variables close it
+instead.
+
+```
+MESHSTAR_NET_NAME=my-mesh MESHSTAR_NET_PW=passphrase cargo build --release
+```
+
+With `MESHSTAR_NET_PW` set, every frame carries the protocol's optional 4 byte
+network access tag: a truncated HMAC-SHA256 over the header and payload, keyed
+by SHA-256 of the name and the passphrase. Frames arriving without a valid tag
+are dropped before anything else is parsed. `MESHSTAR_NET_NAME` defaults to
+`meshstar`. Both are read at compile time with `option_env!`, so there is
+nothing stored or configurable on the board, and an unset passphrase builds the
+open firmware unchanged.
+
+| build | flash |
+|---|---|
+| open (default) | 45 724 B |
+| closed (network tag) | 46 088 B |
+
+So 364 bytes of flash and 4 bytes of airtime per frame. RAM is identical and
+the SHA-256 code is linked either way.
+
+**What it buys.** Nobody outside the network can forge a frame, so nobody can
+inject a beacon and poison this relay's neighbour, zone or route tables. That
+is worth something precisely because this part does not verify beacon
+signatures (see [above](#what-does-not-fit-in-64-kb-and-what-that-means)).
+
+**What it does not buy.** Anonymity. Addresses, sizes and timing stay visible
+to anyone in range with or without the tag; the tag controls access, not
+exposure. It is a shared secret, so it keeps outsiders out and does nothing
+against a node already inside your own network. And every node that should talk
+to this relay has to be built with the same name and passphrase, or they go
+deaf to each other. That trade is right for a private deployment (a team, a
+site, an event) and wrong for a public relay, which is why the default is open.
 
 ## Flash
 

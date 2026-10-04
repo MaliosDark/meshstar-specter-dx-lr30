@@ -25,6 +25,7 @@ use embedded_hal::delay::DelayNs;
 use embedded_hal::digital::{ErrorType, InputPin, OutputPin};
 use embedded_hal_bus::spi::ExclusiveDevice;
 use meshstar_core::identity::Address;
+use meshstar_core::packet::NetworkKey;
 use meshstar_core::platform::SmallRng;
 use meshstar_core::radio::{LoRaProfile, Radio, RadioError, RadioStats, RxMeta};
 use meshstar_core::relay::{Relay, RelayConfig, UnsignedIdentity};
@@ -287,7 +288,13 @@ fn main() -> ! {
     let mut hi = 0u64;
     let mut last_ms = 0u32;
     let now = now_ms(&mut hi, &mut last_ms);
-    let mut relay: Relay<SmallRng, UnsignedIdentity> = Relay::with_identity(RelayConfig { profile, ..RelayConfig::default() }, UnsignedIdentity(addr), SmallRng::new(seed), now);
+    // Optional closed network: with MESHSTAR_NET_PW set at build time every
+    // frame carries the 4 byte network tag and frames without it are dropped.
+    // Unset, the relay stays open and talks to any MeshStar node in range.
+    let network_key = option_env!("MESHSTAR_NET_PW").map(|pw| {
+        NetworkKey::from_passphrase(option_env!("MESHSTAR_NET_NAME").unwrap_or("meshstar"), pw)
+    });
+    let mut relay: Relay<SmallRng, UnsignedIdentity> = Relay::with_identity(RelayConfig { profile, network_key, ..RelayConfig::default() }, UnsignedIdentity(addr), SmallRng::new(seed), now);
     let mut rx_buf = [0u8; 255];
     let mut led_until = now + 1500;
     let mut last_status = now;
